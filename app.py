@@ -7,13 +7,14 @@ import pandas as pd
 from pymilvus import connections, Collection #, FieldSchema,  DataType, Collection, utility
 
 # Connect to milvus
-HOST = '3185-203-252-192-163.ngrok-free.app' #'localhost'
-PORT = '80' # '19530'
+HOST = 'localhost' #'3185-203-252-192-163.ngrok-free.app' 
+PORT = '19530' # '80 #http
 COLLECTION_NAME = 'PetEMR_db'
 INDEX_TYPE = 'IVF_FLAT'
 EMBEDDING_FIELD_NAME = 'soap_embedding'
 
-connections.connect(host=HOST, port=PORT)
+connections.disconnect('default')
+connections.connect('default', host=HOST, port=PORT)
 
 collection = Collection(name=COLLECTION_NAME)
 # st.write(collection)
@@ -61,7 +62,7 @@ def searching(query_embedding):
     results = []
     labels = []
     for i in range(len(result_list)):
-        if result_list[i]['distance'] > 80:
+        if result_list[i]['distance'] > 85:
             results.append(result_list[i])
             labels.append(result_list[i]['entity']['label'])
 
