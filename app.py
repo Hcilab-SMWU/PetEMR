@@ -50,7 +50,7 @@ def searching(query_embedding):
             anns_field = EMBEDDING_FIELD_NAME,
             param = index_params,
             limit = 100,
-            output_fields = ['complaint', 'soap', 'label']
+            output_fields = ['complaint', 'soap', 'test_name', 'label']
         )
     
     result_list = []
@@ -59,11 +59,35 @@ def searching(query_embedding):
             result_list.append(hit.to_dict())
 
     results = []
+    labels = []
     for i in range(len(result_list)):
         if result_list[i]['distance'] > 80:
             results.append(result_list[i])
-            
-    return results
+            labels.append(result_list[i]['entity']['label'])
+
+    heart_prob = np.array(labels).sum() / len(labels)
+
+    heart_tests = []
+    etc_tests = []
+    if heart_prob > 0.5:
+        for i in range(len(results)):
+            if results[i]['entity']['label'] == 1:
+                if results[i]['entity']['test_name'] != 'nan':
+                    if results[i]['entity']['test_name'] not in heart_tests:
+                        heart_tests.append(results[i]['entity']['test_name'])
+        heart_tests = ', '.join(heart_tests).split(', ')
+        heart_tests = list(set(heart_tests))
+    
+    else:
+        for i in range(len(results)):
+            if results[i]['entity']['label'] == 0:
+                if results[i]['entity']['test_name'] != 'nan':
+                    if results[i]['entity']['test_name'] not in etc_tests:
+                        etc_tests.append(results[i]['entity']['test_name'])
+        etc_tests = ', '.join(etc_tests).split(', ')
+        etc_tests = list(set(etc_tests))
+
+    return heart_prob, heart_tests, etc_tests
 
 # Page layout
 # 1. Sidebar
@@ -92,11 +116,21 @@ def search_page():
 
     if search_button:
         text_embedding = embedding(symptoms)
-        results = searching(text_embedding)
+        heart_prob, heart_tests, etc_tests = searching(text_embedding)
 
-        for i in range(len(results)):
-            st.write(f"{i}: {results[i]}")
-            st.write("")
+        # for i in range(len(results)):
+        #     st.write(f"{i}: {results[i]}")
+        #     st.write("")
+        if heart_prob > 0.5:
+            st.write(f"심장 질환일 확률이 높은 편입니다. ({heart_prob:.2f})")
+            st.write("관련 검사를 추천합니다.")
+            for i in range(len(heart_tests)):
+                st.write(f"{i+1}. {heart_tests[i]}")
+        else:
+            st.write(f"심장 질환일 확률이 낮은 편입니다. ({heart_prob:.2f})")
+            st.write("관련 검사를 추천합니다.")
+            for i in range(len(etc_tests)):
+                st.write(f"{i+1}. {etc_tests[i]}")
 
 page_names = {'Main': main_page, 'Search': search_page}
 page_names[menu]()
