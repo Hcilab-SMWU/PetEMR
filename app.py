@@ -62,7 +62,7 @@ def searching(query_embedding):
     results = []
     labels = []
     for i in range(len(result_list)):
-        if result_list[i]['distance'] > 85:
+        if result_list[i]['distance'] > 75:
             results.append(result_list[i])
             labels.append(result_list[i]['entity']['label'])
 
