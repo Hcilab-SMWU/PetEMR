@@ -227,14 +227,16 @@ def button_search_page():
 
         if heart_prob > 0.5:
             st.write(f"심장 질환일 확률이 높은 편입니다. ({heart_prob:.2f})")
-            st.write("관련 검사를 추천합니다.")
-            for i in range(len(heart_tests)):
-                st.write(f"{i+1}. {heart_tests[i]}")
+            if len(heart_tests) != 0 and heart_tests[0] != '':
+                st.write("관련 검사를 추천합니다.")
+                for i in range(len(heart_tests)):
+                    st.write(f"{i+1}. {heart_tests[i]}")
         else:
             st.write(f"심장 질환일 확률이 낮은 편입니다. ({heart_prob:.2f})")
-            st.write("관련 검사를 추천합니다.")
-            for i in range(len(etc_tests)):
-                st.write(f"{i+1}. {etc_tests[i]}")
+            if len(etc_tests) != 0 and etc_tests[0] != '':
+                st.write("관련 검사를 추천합니다.")
+                for i in range(len(etc_tests)):
+                    st.write(f"{i+1}. {etc_tests[i]}")
 
 
 page_names = {'Main': main_page, 'Search': search_page, 'Button Search': button_search_page}
