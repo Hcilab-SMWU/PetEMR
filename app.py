@@ -7,8 +7,8 @@ import pandas as pd
 from pymilvus import connections, Collection #, FieldSchema,  DataType, Collection, utility
 
 # Connect to milvus
-HOST = 'localhost' #'3185-203-252-192-163.ngrok-free.app' 
-PORT = '19530' # '80 #http
+HOST = 'localhost' 
+PORT = '19530' 
 COLLECTION_NAME = 'PetEMR_db'
 INDEX_TYPE = 'IVF_FLAT'
 EMBEDDING_FIELD_NAME = 'soap_embedding'
@@ -22,6 +22,20 @@ collection = Collection(name=COLLECTION_NAME)
 # Use embedding model
 tokenizer = AutoTokenizer.from_pretrained('jhgan/ko-sroberta-multitask')
 model = AutoModel.from_pretrained('jhgan/ko-sroberta-multitask')
+
+symptoms = pd.read_csv('/증상리스트.csv', encoding='cp949')
+symptoms = symptoms.drop(0, axis=0)
+similar_sym = []
+for i in range(len(symptoms)):
+    sym = [symptoms.iloc[i][1]]
+    sym += symptoms.iloc[i][2].split('/')
+    if type(symptoms.iloc[i][3]) == str:
+        sym += [symptoms.iloc[i][3]]
+    else:
+        sym += ['없음']
+    # print(sym)
+    similar_sym.append(sym)
+similar_df = pd.DataFrame(similar_sym)
 
 # Mean Pooling - Take attention mask into account for correct averaging
 def mean_pooling(model_output, attention_mask):
@@ -62,7 +76,39 @@ def searching(query_embedding):
     results = []
     labels = []
     for i in range(len(result_list)):
-        if result_list[i]['distance'] > 75:
+        if result_list[i]['distance'] > 80:
+            results.append(result_list[i])
+            labels.append(result_list[i]['entity']['label'])
+
+    heart_prob = np.array(labels).sum() / len(labels)
+
+    heart_tests = []
+    etc_tests = []
+    if heart_prob > 0.5:
+        for i in range(len(results)):
+            if results[i]['entity']['label'] == 1:
+                if results[i]['entity']['test_name'] != 'nan':
+                    if results[i]['entity']['test_name'] not in heart_tests:
+                        heart_tests.append(results[i]['entity']['test_name'])
+        heart_tests = ', '.join(heart_tests).split(', ')
+        heart_tests = list(set(heart_tests))
+    
+    else:
+        for i in range(len(results)):
+            if results[i]['entity']['label'] == 0:
+                if results[i]['entity']['test_name'] != 'nan':
+                    if results[i]['entity']['test_name'] not in etc_tests:
+                        etc_tests.append(results[i]['entity']['test_name'])
+        etc_tests = ', '.join(etc_tests).split(', ')
+        etc_tests = list(set(etc_tests))
+
+    return heart_prob, heart_tests, etc_tests, result_list
+
+def heart_cal(result_list):
+    results = []
+    labels = []
+    for i in range(len(result_list)):
+        if result_list[i]['distance'] > 80:
             results.append(result_list[i])
             labels.append(result_list[i]['entity']['label'])
 
@@ -93,7 +139,7 @@ def searching(query_embedding):
 # Page layout
 # 1. Sidebar
 with st.sidebar:
-    menu = option_menu("Menu", ["Main", "Search"])
+    menu = option_menu("Menu", ["Main", "Search", "Button Search"])
 
 # 2. Main page
 def main_page():
@@ -108,7 +154,7 @@ def search_page():
 
     if breed == '강아지':
         with st.form("search_form"):
-            symptoms = st.text_input("반려동물의 증상을 입력하세요.")
+            symptom = st.text_input("반려동물의 증상을 입력하세요.")
             search_button = st.form_submit_button("Search")  
     elif breed == '선택':
         st.write("")
@@ -116,12 +162,13 @@ def search_page():
         st.write(f"{breed}는 아직 지원하지 않습니다😿😿")
 
     if search_button:
-        text_embedding = embedding(symptoms)
-        heart_prob, heart_tests, etc_tests = searching(text_embedding)
+        text_embedding = embedding(symptom)
+        heart_prob, heart_tests, etc_tests, result = searching(text_embedding)
 
         # for i in range(len(results)):
         #     st.write(f"{i}: {results[i]}")
         #     st.write("")
+        # st.write(result)
         if heart_prob > 0.5:
             st.write(f"심장 질환일 확률이 높은 편입니다. ({heart_prob:.2f})")
             st.write("관련 검사를 추천합니다.")
@@ -133,5 +180,62 @@ def search_page():
             for i in range(len(etc_tests)):
                 st.write(f"{i+1}. {etc_tests[i]}")
 
-page_names = {'Main': main_page, 'Search': search_page}
+# 4. Button Search page
+def button_search_page():
+    st.title("Button Search")
+
+    breed = st.selectbox('반려동물 종을 선택하세요.', ('선택', '강아지', '고양이', '기타'))
+    search_button = False
+    sym_list = similar_df[0].tolist()
+
+    if breed == '강아지':
+        with st.form("search_form"):
+            selected_sym_list = st.multiselect("반려동물의 증상을 선택하세요.", sym_list, max_selections=1)
+            search_button = st.form_submit_button("Search")  
+            # search_button = st.button("Search")
+    elif breed == '선택':
+        st.write("")
+    else:
+        st.write(f"{breed}는 아직 지원하지 않습니다😿😿")
+
+    if search_button:
+        # st.write(search_button)
+        # st.write(similar_df)
+        for i in range(len(selected_sym_list)):
+            selected_list = similar_df[similar_df.loc[:,0] == selected_sym_list[i]]
+            # st.write(selected_list)
+            selected_list = selected_list.dropna(axis=1)
+            selected_list = selected_list.values.tolist()[0]
+            if type(selected_list[-1]) == '없음':
+                re_test = ""
+            else:
+                re_test = selected_list[-1].split(', ')
+            # selected_list = selected_list.values.tolist()
+            sym_list = selected_list.pop()
+
+            results = []
+            for sym in sym_list:
+                text_embedding = embedding(sym)
+                heart_prob, heart_tests, etc_tests, result = searching(text_embedding)
+                results += result
+
+            heart_prob, heart_tests, etc_tests = heart_cal(results)
+
+            heart_tests = re_test + heart_tests
+            etc_tests = re_test + etc_tests
+            # st.write(heart_tests)
+
+        if heart_prob > 0.5:
+            st.write(f"심장 질환일 확률이 높은 편입니다. ({heart_prob:.2f})")
+            st.write("관련 검사를 추천합니다.")
+            for i in range(len(heart_tests)):
+                st.write(f"{i+1}. {heart_tests[i]}")
+        else:
+            st.write(f"심장 질환일 확률이 낮은 편입니다. ({heart_prob:.2f})")
+            st.write("관련 검사를 추천합니다.")
+            for i in range(len(etc_tests)):
+                st.write(f"{i+1}. {etc_tests[i]}")
+
+
+page_names = {'Main': main_page, 'Search': search_page, 'Button Search': button_search_page}
 page_names[menu]()
