@@ -12,6 +12,6 @@ We implemented a web prototype using Streamlit. You can test it at <a href="http
 
 ## Usage
 
-1. Set up for using <a herf="https://milvus.io/docs/install_standalone-docker.md">milvus</a>
-2. Install <a herf="https://milvus.io/docs/install-pymilvus.md">pymilvus</a>
+1. Set up for using <a href="https://milvus.io/docs/install_standalone-docker.md">milvus</a>
+2. Install <a href="https://milvus.io/docs/install-pymilvus.md">pymilvus</a>
 3. Create embeddings for data insert and query (refer to emr_embedding.ipynb)
