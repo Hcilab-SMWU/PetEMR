@@ -206,8 +206,8 @@ def button_search_page():
             # st.write(selected_list)
             selected_list = selected_list.dropna(axis=1)
             selected_list = selected_list.values.tolist()[0]
-            if type(selected_list[-1]) == '없음':
-                re_test = ""
+            if selected_list[-1] == '없음':
+                re_test = []
             else:
                 re_test = selected_list[-1].split(', ')
             # selected_list = selected_list.values.tolist()
