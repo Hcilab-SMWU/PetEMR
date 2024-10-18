@@ -4,7 +4,7 @@ We developed an NLP-based similar symptom search service using pet Electronic Me
 
 ## Prototype
 
-We implemented a web prototype using Streamlit. You can test it at <a href=" https://82ff-203-252-192-163.ngrok-free.app">this link</a>.
+We implemented a web prototype using Streamlit. You can test it at <a href="https://82ff-203-252-192-163.ngrok-free.app">this link</a>.
 <br/>
 <div align=center><img src="https://github.com/user-attachments/assets/206bf1c9-44a8-4a0a-96b5-bbd8fe4fa344"></div>
 
