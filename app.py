@@ -23,7 +23,7 @@ collection = Collection(name=COLLECTION_NAME)
 tokenizer = AutoTokenizer.from_pretrained('jhgan/ko-sroberta-multitask')
 model = AutoModel.from_pretrained('jhgan/ko-sroberta-multitask')
 
-symptoms = pd.read_csv('/증상리스트.csv', encoding='cp949')
+symptoms = pd.read_csv('증상리스트.csv', encoding='cp949')
 symptoms = symptoms.drop(0, axis=0)
 similar_sym = []
 for i in range(len(symptoms)):
@@ -36,6 +36,7 @@ for i in range(len(symptoms)):
     # print(sym)
     similar_sym.append(sym)
 similar_df = pd.DataFrame(similar_sym)
+# st.write(similar_df)
 
 # Mean Pooling - Take attention mask into account for correct averaging
 def mean_pooling(model_output, attention_mask):
@@ -76,9 +77,13 @@ def searching(query_embedding):
     results = []
     labels = []
     for i in range(len(result_list)):
-        if result_list[i]['distance'] > 80:
+        if result_list[i]['distance'] > 50:
             results.append(result_list[i])
-            labels.append(result_list[i]['entity']['label'])
+            if result_list[i]['entity']['label'] >= 1:
+                labels.append(1)
+            else:
+                labels.append(0)
+            # labels.append(result_list[i]['entity']['label'])
 
     heart_prob = np.array(labels).sum() / len(labels)
 
@@ -108,9 +113,13 @@ def heart_cal(result_list):
     results = []
     labels = []
     for i in range(len(result_list)):
-        if result_list[i]['distance'] > 80:
+        if result_list[i]['distance'] > 50:
             results.append(result_list[i])
-            labels.append(result_list[i]['entity']['label'])
+            if result_list[i]['entity']['label'] >= 1:
+                labels.append(1)
+            else:
+                labels.append(0)
+            # labels.append(result_list[i]['entity']['label'])
 
     heart_prob = np.array(labels).sum() / len(labels)
 
@@ -164,6 +173,8 @@ def search_page():
     if search_button:
         text_embedding = embedding(symptom)
         heart_prob, heart_tests, etc_tests, result = searching(text_embedding)
+        heart_tests = [test for test in heart_tests if test != '']
+        etc_tests = [test for test in etc_tests if test != '']
 
         # for i in range(len(results)):
         #     st.write(f"{i}: {results[i]}")
@@ -187,6 +198,7 @@ def button_search_page():
     breed = st.selectbox('반려동물 종을 선택하세요.', ('선택', '강아지', '고양이', '기타'))
     search_button = False
     sym_list = similar_df[0].tolist()
+    # st.write(sym_list)
 
     if breed == '강아지':
         with st.form("search_form"):
@@ -201,9 +213,9 @@ def button_search_page():
     if search_button:
         # st.write(search_button)
         # st.write(similar_df)
+        # st.write(selected_sym_list)
         for i in range(len(selected_sym_list)):
             selected_list = similar_df[similar_df.loc[:,0] == selected_sym_list[i]]
-            # st.write(selected_list)
             selected_list = selected_list.dropna(axis=1)
             selected_list = selected_list.values.tolist()[0]
             if selected_list[-1] == '없음':
@@ -216,24 +228,28 @@ def button_search_page():
             results = []
             for sym in sym_list:
                 text_embedding = embedding(sym)
-                heart_prob, heart_tests, etc_tests, result = searching(text_embedding)
+                _, _, _, result = searching(text_embedding)
                 results += result
 
+            # st.write(results)
             heart_prob, heart_tests, etc_tests = heart_cal(results)
+            # st.write(heart_prob)
 
             heart_tests = re_test + heart_tests
             etc_tests = re_test + etc_tests
             # st.write(heart_tests)
+        heart_tests = [test for test in heart_tests if test != '']
+        etc_tests = [test for test in etc_tests if test != '']
 
         if heart_prob > 0.5:
             st.write(f"심장 질환일 확률이 높은 편입니다. ({heart_prob:.2f})")
-            if len(heart_tests) != 0 and heart_tests[0] != '':
+            if len(heart_tests) != 0:
                 st.write("관련 검사를 추천합니다.")
                 for i in range(len(heart_tests)):
                     st.write(f"{i+1}. {heart_tests[i]}")
         else:
             st.write(f"심장 질환일 확률이 낮은 편입니다. ({heart_prob:.2f})")
-            if len(etc_tests) != 0 and etc_tests[0] != '':
+            if len(etc_tests) != 0:
                 st.write("관련 검사를 추천합니다.")
                 for i in range(len(etc_tests)):
                     st.write(f"{i+1}. {etc_tests[i]}")
