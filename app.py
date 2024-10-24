@@ -77,7 +77,7 @@ def searching(query_embedding):
     results = []
     labels = []
     for i in range(len(result_list)):
-        if result_list[i]['distance'] > 50:
+        if result_list[i]['distance'] > 65:
             results.append(result_list[i])
             if result_list[i]['entity']['label'] >= 1:
                 labels.append(1)
@@ -113,7 +113,7 @@ def heart_cal(result_list):
     results = []
     labels = []
     for i in range(len(result_list)):
-        if result_list[i]['distance'] > 50:
+        if result_list[i]['distance'] > 65:
             results.append(result_list[i])
             if result_list[i]['entity']['label'] >= 1:
                 labels.append(1)
@@ -245,13 +245,13 @@ def button_search_page():
             st.write(f"심장 질환일 확률이 높은 편입니다. ({heart_prob:.2f})")
             if len(heart_tests) != 0:
                 st.write("관련 검사를 추천합니다.")
-                for i in range(len(heart_tests)):
+                for i in range(0, min(len(heart_tests), 5)):
                     st.write(f"{i+1}. {heart_tests[i]}")
         else:
             st.write(f"심장 질환일 확률이 낮은 편입니다. ({heart_prob:.2f})")
             if len(etc_tests) != 0:
                 st.write("관련 검사를 추천합니다.")
-                for i in range(len(etc_tests)):
+                for i in range(0, min(len(etc_tests), 5)):
                     st.write(f"{i+1}. {etc_tests[i]}")
 
 
